@@ -46,6 +46,54 @@ def run_phase1():
         print(f"  S{symbol}: تجربی={data['empirical']:.4f}  تئوری={data['theoretical']:.4f}")
 
 
+def run_phase2():
+    q = int(input("تعداد نمادهای منبع (q): "))
+    probs_str = input(f"بردار احتمالات را با کاما جدا کن ({q} مقدار): ")
+
+    try:
+        probs = [float(x.strip()) for x in probs_str.split(",")]
+    except ValueError:
+        print("فرمت ورودی درست نیست، مقادیر باید عددی باشند.")
+        return
+
+    if len(probs) != q:
+        print(f"تعداد مقادیر وارد شده ({len(probs)}) با q={q} مطابقت نداره.")
+        return
+
+    ok, msg = source.validate_probabilities(probs)
+    if not ok:
+        print("خطا:", msg)
+        return
+
+    L = int(input("مرتبه توسعه منبع (L) [پیش‌فرض ۱]: ") or "1")
+    if L < 1:
+        print("L باید حداقل ۱ باشه.")
+        return
+
+    N = int(input("طول رشته منبع برای تست (N): "))
+    if N % L != 0:
+        print(f"خطا: N={N} باید مضربی از L={L} باشد.")
+        return
+
+    sequence = source.generate_sequence(probs, N)
+    seq_list = [int(x) for x in sequence]
+
+    combos, ext_probs = huffman.extend_source(probs, L)
+    codebook = huffman.build_huffman_codes(ext_probs)
+
+    bits = huffman.encode_sequence(seq_list, L, codebook, combos)
+    decoded = huffman.decode_bits(bits, codebook, combos)
+
+    avg_len = huffman.average_length(ext_probs, codebook) / L
+    H = huffman.entropy(probs)
+
+    print(f"\nتعداد نمادهای منبع توسعه‌یافته (q^L): {len(combos)}")
+    print(f"طول رشته باینری خروجی: {len(bits)} بیت (به‌جای {N * 8} بیت خام)")
+    print(f"میانگین طول کد به‌ازای هر نماد اصلی: {avg_len:.4f} بیت")
+    print(f"آنتروپی منبع: {H:.4f} بیت (کران پایین طبق شانون)")
+    print("رمزگشایی با دنباله اصلی یکسان است:", decoded == seq_list)
+
+
 def main():
     while True:
         show_menu()
@@ -56,7 +104,7 @@ def main():
         elif choice == "1":
             run_phase1()
         elif choice == "2":
-            print("فاز ۲ هنوز پیاده نشده.")
+            run_phase2()
         elif choice == "3":
             print("فاز ۳ هنوز پیاده نشده.")
         elif choice == "4":
