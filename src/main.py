@@ -94,6 +94,39 @@ def run_phase2():
     print("رمزگشایی با دنباله اصلی یکسان است:", decoded == seq_list)
 
 
+def run_phase3():
+    r = int(input("تعداد بیت‌های توازن (r): "))
+    if r < 2:
+        print("r باید حداقل ۲ باشه.")
+        return
+
+    n, k, R = hamming.hamming_params(r)
+    print(f"\nn (طول کل بلوک) = {n}")
+    print(f"k (طول بلوک پیام) = {k}")
+    print(f"نرخ کد R = k/n = {R:.4f}")
+
+    H = hamming.build_H(r)
+    H_std = hamming.standard_form(H, r, n)
+    G = hamming.build_G(H_std, k)
+
+    print(f"\nماتریس H (فرم استاندارد، {n}x{r}):")
+    for row in H_std:
+        print("  ", row)
+
+    print(f"\nماتریس G (فرم استاندارد، {k}x{n}):")
+    for row in G:
+        print("  ", row)
+
+    bits_str = input("\nیک رشته باینری برای تست کدگذاری وارد کن (خالی=تولید خودکار): ").strip()
+    if not bits_str:
+        bits_str = "".join(str(b) for b in [1, 0, 1, 1, 0, 0, 1, 0, 1, 1])
+
+    encoded, pad = hamming.encode_blocks(bits_str, G, k)
+    print(f"\nرشته ورودی ({len(bits_str)} بیت): {bits_str}")
+    print(f"بیت‌های پد شده: {pad}")
+    print(f"رشته کدگذاری‌شده ({len(encoded)} بیت): {encoded}")
+
+
 def main():
     while True:
         show_menu()
@@ -106,7 +139,7 @@ def main():
         elif choice == "2":
             run_phase2()
         elif choice == "3":
-            print("فاز ۳ هنوز پیاده نشده.")
+            run_phase3()
         elif choice == "4":
             print("فاز ۴ هنوز پیاده نشده.")
         elif choice == "5":
