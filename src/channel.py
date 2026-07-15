@@ -1,4 +1,4 @@
-# فاز ۴: شبیه‌سازی کانال BSC و کدگشایی سندروم
+# Phase 4: BSC channel simulation and syndrome decoding
 
 import numpy as np
 

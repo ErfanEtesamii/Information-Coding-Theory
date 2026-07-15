@@ -1,4 +1,4 @@
-# فاز ۵: محاسبه Pe و رسم نمودار در برابر SNR + حد شانون
+# Phase 5: Pe calculation, SNR conversion, Shannon capacity limit and plotting
 
 import math
 import matplotlib
@@ -13,13 +13,13 @@ def bit_error_rate(sent_bits, received_bits):
 
 
 def snr_db(p):
-    # SNR = (1-p)/p طبق تعریف داکیومنت، سپس تبدیل به دسی‌بل
+    # SNR = (1-p)/p as defined in the project document, converted to dB
     ratio = (1 - p) / p
     return 10 * math.log10(ratio)
 
 
 def channel_capacity(p):
-    # ظرفیت کانال BSC: C(p) = 1 - H_b(p)
+    # BSC channel capacity: C(p) = 1 - H_b(p)
     if p <= 0:
         return 1.0
     if p >= 1:
@@ -28,8 +28,8 @@ def channel_capacity(p):
 
 
 def shannon_threshold(R):
-    # جستجوی دودویی برای یافتن p* که در آن C(p*) = R
-    # C(p) روی بازه (0, 0.5] نزولیه، پس جستجوی دودویی معتبره
+    # Binary search for p* such that C(p*) = R.
+    # C(p) is monotonically decreasing over (0, 0.5], so binary search is valid.
     lo, hi = 1e-9, 0.5 - 1e-9
     for _ in range(200):
         mid = (lo + hi) / 2

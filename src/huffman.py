@@ -1,4 +1,4 @@
-# فاز ۲: کدگذاری منبع با هافمن + توسعه منبع
+# Phase 2: Huffman source coding + source extension
 
 import heapq
 import itertools
@@ -55,7 +55,7 @@ def extend_source(probs, L):
 
 def encode_sequence(sequence, L, codebook, combos):
     if len(sequence) % L != 0:
-        raise ValueError(f"طول دنباله ({len(sequence)}) باید مضربی از L={L} باشد")
+        raise ValueError(f"Sequence length ({len(sequence)}) must be a multiple of L={L}")
 
     combo_index = {combo: i for i, combo in enumerate(combos)}
     bits = []

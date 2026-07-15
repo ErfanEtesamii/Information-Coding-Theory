@@ -1,4 +1,4 @@
-# فاز ۱: تعریف منبع و تولید دنباله داده
+# Phase 1: Source definition and sequence generation
 
 import numpy as np
 
@@ -6,13 +6,13 @@ import numpy as np
 def validate_probabilities(probs, tol=1e-6):
     for p in probs:
         if p < 0 or p > 1:
-            return False, f"احتمال {p} خارج از بازه [0,1] است"
+            return False, f"Probability {p} is outside the range [0,1]"
 
     total = sum(probs)
     if abs(total - 1) > tol:
-        return False, f"مجموع احتمالات برابر {total} است، باید ۱ باشد"
+        return False, f"Sum of probabilities is {total}, must be 1"
 
-    return True, "ورودی معتبر است"
+    return True, "Input is valid"
 
 
 def generate_sequence(probs, length, seed=None):
