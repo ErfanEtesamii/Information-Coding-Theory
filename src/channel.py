@@ -35,6 +35,7 @@ def syndrome_decode(received_bits, H_std, n, r, k):
     zero_syndrome = tuple([0] * r)
 
     message_bits = []
+    corrected_full = []
     num_corrected = 0
 
     for start in range(0, len(received_bits), n):
@@ -46,6 +47,9 @@ def syndrome_decode(received_bits, H_std, n, r, k):
             block[error_pos] ^= 1
             num_corrected += 1
 
+        corrected_full.extend(block)
         message_bits.extend(block[:k])
 
-    return "".join(str(b) for b in message_bits), num_corrected
+    message_str = "".join(str(b) for b in message_bits)
+    corrected_str = "".join(str(b) for b in corrected_full)
+    return message_str, num_corrected, corrected_str

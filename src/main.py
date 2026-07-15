@@ -158,7 +158,7 @@ def run_phase4():
     received_encoded, _ = channel.bsc_transmit(encoded, p_error)
     channel_errors = sum(1 for a, b in zip(encoded, received_encoded) if a != b)
 
-    decoded_bits, num_corrected = channel.syndrome_decode(received_encoded, H_std, n, r, k)
+    decoded_bits, num_corrected, _ = channel.syndrome_decode(received_encoded, H_std, n, r, k)
     decoded_bits = decoded_bits[:len(bits_str)]  # حذف بیت‌های پد
     errors_remaining = sum(1 for a, b in zip(bits_str, decoded_bits) if a != b)
 
@@ -170,6 +170,86 @@ def run_phase4():
     print(f"بیت‌های خطادار وارد شده توسط کانال: {channel_errors}")
     print(f"بلوک‌های تصحیح‌شده توسط کدگشا: {num_corrected}")
     print(f"بیت‌های خطای باقی‌مانده بعد از تصحیح: {errors_remaining}")
+
+
+def run_phase5():
+    q = int(input("تعداد نمادهای منبع (q): "))
+    probs_str = input(f"بردار احتمالات را با کاما جدا کن ({q} مقدار): ")
+
+    try:
+        probs = [float(x.strip()) for x in probs_str.split(",")]
+    except ValueError:
+        print("فرمت ورودی درست نیست.")
+        return
+
+    if len(probs) != q:
+        print(f"تعداد مقادیر وارد شده ({len(probs)}) با q={q} مطابقت نداره.")
+        return
+
+    ok, msg = source.validate_probabilities(probs)
+    if not ok:
+        print("خطا:", msg)
+        return
+
+    L = int(input("مرتبه توسعه منبع (L) [پیش‌فرض ۱]: ") or "1")
+    r = int(input("تعداد بیت‌های توازن کد همینگ (r): "))
+
+    N = int(input("طول دنباله منبع برای شبیه‌سازی (N) [پیشنهاد: عدد بزرگ مثل 5000]: "))
+    if N % L != 0:
+        print(f"خطا: N باید مضربی از L={L} باشه.")
+        return
+
+    num_points = int(input("تعداد نقاط محور SNR [پیش‌فرض ۱۲]: ") or "12")
+
+    n, k, R = hamming.hamming_params(r)
+    H = hamming.build_H(r)
+    H_std = hamming.standard_form(H, r, n)
+    G = hamming.build_G(H_std, k)
+
+    combos, ext_probs = huffman.extend_source(probs, L)
+    codebook = huffman.build_huffman_codes(ext_probs)
+
+    sequence = source.generate_sequence(probs, N)
+    seq_list = [int(x) for x in sequence]
+
+    huffman_bits = huffman.encode_sequence(seq_list, L, codebook, combos)
+    encoded, pad = hamming.encode_blocks(huffman_bits, G, k)
+
+    # مقادیر p به‌صورت لگاریتمی بین یک مقدار کوچک تا نزدیک ۰.۵ پخش می‌شن
+    # تا هم ناحیه‌ی خطای زیاد و هم ناحیه‌ی سقوط منحنی پوشش داده بشه
+    p_min, p_max = 1e-3, 0.49
+    if num_points == 1:
+        p_values = [p_max]
+    else:
+        p_values = [p_min * (p_max / p_min) ** (i / (num_points - 1)) for i in range(num_points)]
+
+    print(f"\nطول رشته کدگذاری‌شده (N''): {len(encoded)} بیت")
+    print(f"{'p':>10} {'SNR(dB)':>10} {'Pe':>14}")
+
+    pe_values = []
+    snr_values = []
+    for p in p_values:
+        received, _ = channel.bsc_transmit(encoded, p)
+        _, _, corrected_full = channel.syndrome_decode(received, H_std, n, r, k)
+
+        pe = evaluate.bit_error_rate(encoded, corrected_full)
+        snr = evaluate.snr_db(p)
+
+        pe_values.append(pe)
+        snr_values.append(snr)
+        print(f"{p:>10.4f} {snr:>10.2f} {pe:>14.6f}")
+
+    p_star = evaluate.shannon_threshold(R)
+    snr_star = evaluate.snr_db(p_star)
+    print(f"\nنرخ کد R = {R:.4f}")
+    print(f"آستانه شانون: p* = {p_star:.6f}  ->  SNR* = {snr_star:.2f} dB")
+
+    # مقادیری که Pe صفر شدن رو برای نمایش روی مقیاس لگاریتمی محدود می‌کنیم
+    pe_values_for_plot = [max(pe, 1e-6) for pe in pe_values]
+
+    save_path = "ber_curve.png"
+    evaluate.plot_results(snr_values, pe_values_for_plot, snr_star, save_path)
+    print(f"\nنمودار در فایل {save_path} ذخیره شد.")
 
 
 def main():
@@ -188,7 +268,7 @@ def main():
         elif choice == "4":
             run_phase4()
         elif choice == "5":
-            print("فاز ۵ هنوز پیاده نشده.")
+            run_phase5()
         else:
             print("گزینه نامعتبره، دوباره امتحان کن.")
 
