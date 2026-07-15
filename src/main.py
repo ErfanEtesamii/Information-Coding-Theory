@@ -127,6 +127,51 @@ def run_phase3():
     print(f"رشته کدگذاری‌شده ({len(encoded)} بیت): {encoded}")
 
 
+def run_phase4():
+    r = int(input("تعداد بیت‌های توازن (r): "))
+    if r < 2:
+        print("r باید حداقل ۲ باشه.")
+        return
+
+    n, k, R = hamming.hamming_params(r)
+    H = hamming.build_H(r)
+    H_std = hamming.standard_form(H, r, n)
+    G = hamming.build_G(H_std, k)
+
+    bits_str = input("رشته باینری پیام برای تست (خالی = تولید تصادفی ۱۰۰ بیتی): ").strip()
+    if not bits_str:
+        import random
+        bits_str = "".join(random.choice("01") for _ in range(100))
+
+    p_str = input("احتمال خطای کانال P̄ (مثلا 0.05): ")
+    p_error = float(p_str)
+    if not (0 <= p_error < 0.5):
+        print("P̄ باید در بازه [0, 0.5) باشه.")
+        return
+
+    # سناریو ۱: بدون کدگذاری کانال، دنباله مستقیم وارد کانال می‌شود
+    received_raw, _ = channel.bsc_transmit(bits_str, p_error)
+    errors_raw = sum(1 for a, b in zip(bits_str, received_raw) if a != b)
+
+    # سناریو ۲: با کدگذاری کانال همینگ
+    encoded, pad = hamming.encode_blocks(bits_str, G, k)
+    received_encoded, _ = channel.bsc_transmit(encoded, p_error)
+    channel_errors = sum(1 for a, b in zip(encoded, received_encoded) if a != b)
+
+    decoded_bits, num_corrected = channel.syndrome_decode(received_encoded, H_std, n, r, k)
+    decoded_bits = decoded_bits[:len(bits_str)]  # حذف بیت‌های پد
+    errors_remaining = sum(1 for a, b in zip(bits_str, decoded_bits) if a != b)
+
+    print(f"\n--- سناریو ۱: بدون حفاظت کانال ---")
+    print(f"بیت‌های خطادار از {len(bits_str)} بیت ارسالی: {errors_raw}")
+
+    print(f"\n--- سناریو ۲: با کد همینگ (n={n}, k={k}, R={R:.4f}) ---")
+    print(f"تعداد بلوک‌های ارسالی: {len(encoded) // n}")
+    print(f"بیت‌های خطادار وارد شده توسط کانال: {channel_errors}")
+    print(f"بلوک‌های تصحیح‌شده توسط کدگشا: {num_corrected}")
+    print(f"بیت‌های خطای باقی‌مانده بعد از تصحیح: {errors_remaining}")
+
+
 def main():
     while True:
         show_menu()
@@ -141,7 +186,7 @@ def main():
         elif choice == "3":
             run_phase3()
         elif choice == "4":
-            print("فاز ۴ هنوز پیاده نشده.")
+            run_phase4()
         elif choice == "5":
             print("فاز ۵ هنوز پیاده نشده.")
         else:
